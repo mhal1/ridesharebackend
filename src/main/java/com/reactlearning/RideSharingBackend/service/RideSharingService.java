@@ -1,9 +1,6 @@
 package com.reactlearning.RideSharingBackend.service;
 
-import com.reactlearning.RideSharingBackend.dto.BookingDTO;
-import com.reactlearning.RideSharingBackend.dto.RideDTO;
-import com.reactlearning.RideSharingBackend.dto.UserDTO;
-import com.reactlearning.RideSharingBackend.dto.UserResponseDTO;
+import com.reactlearning.RideSharingBackend.dto.*;
 import com.reactlearning.RideSharingBackend.entity.Bookings;
 import com.reactlearning.RideSharingBackend.entity.CurrentUserLogged;
 import com.reactlearning.RideSharingBackend.entity.Rides;
@@ -13,6 +10,8 @@ import com.reactlearning.RideSharingBackend.repository.CurrentUserRepository;
 import com.reactlearning.RideSharingBackend.repository.RideSharingRepository;
 import com.reactlearning.RideSharingBackend.repository.RidesRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -37,11 +36,11 @@ public class RideSharingService {
         ValidUsers user = rideSharingRepository.findByUserName(userDTO.getUserName());
         UserResponseDTO nullUserResponseDTO = new UserResponseDTO();
         if (user != null) {
-            if (user.getPassword().equals(userDTO.getPassword())) {
+            BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+            if (encoder.matches(userDTO.getPassword(),user.getPassword())) {
                 UserResponseDTO userResponseDTO = new UserResponseDTO();
                 userResponseDTO.setId(user.getId());
                 userResponseDTO.setUserName(user.getUserName());
-                userResponseDTO.setPassword(user.getPassword());
                 userResponseDTO.setValid("true");
                 return userResponseDTO;
             } else {
@@ -69,7 +68,7 @@ public class RideSharingService {
         return rideList;
     }
 
-    public BookingDTO createBooking(BookingDTO bookingDTO) {
+    public BookingResponseDTO createBooking(BookingDTO bookingDTO) {
         Bookings bookings = new Bookings();
 
         RideDTO rideDTO = bookingDTO.getRide();
@@ -87,15 +86,22 @@ public class RideSharingService {
         bookings.setUser(bookingDTO.getUser());
 
         Bookings booked = bookingRepository.save(bookings);
-        bookingDTO.setId(booked.getId());
+        BookingResponseDTO bookingResponseDTO = new BookingResponseDTO();
+        bookingResponseDTO.setId(booked.getId());
+        bookingResponseDTO.setUser(booked.getUser());
         rideDTO.setSeatsAvailable(rides.getSeatsAvailable());
-        bookingDTO.setRide(rideDTO);
+        bookingResponseDTO.setRide(rideDTO);
 
         Integer rideUpdate = ridesRepository.updateRide(rides.getRide_id(), rides.getSeatsAvailable());
-        return bookingDTO;
+
+        List<BookingDTO> bookingList = getAllBookings(bookingDTO.getUser());
+        Integer numberOfBookings = bookingList.size();
+        bookingResponseDTO.setNumberOfBookings(numberOfBookings);
+
+        return bookingResponseDTO;
     }
 
-    public String deleteBooking(Integer id) {
+    public DeleteResponseDTO deleteBooking(Integer id,String userName) {
         Optional<Bookings> booking = bookingRepository.findById(id);
         if (booking.isPresent()) {
             Bookings bookingReceived = booking.get();
@@ -106,9 +112,13 @@ public class RideSharingService {
             ridesRepository.updateRide(rideId, seats);
             //delete booking from booking table
             bookingRepository.delete(bookingReceived);
-            return "Booking deleted with id: " + bookingId;
+            List<BookingDTO> bookingList = getAllBookings(userName);
+            Integer numberOfBookings = bookingList.size();
+            DeleteResponseDTO deleteResponseDTO = new DeleteResponseDTO();
+            deleteResponseDTO.setNumberOfBookings(numberOfBookings);
+            return deleteResponseDTO;
         }
-        return "null";
+        return null;
     }
 
     public RideDTO createRide(RideDTO rideDTO) {
@@ -151,7 +161,10 @@ public class RideSharingService {
         ValidUsers user = new ValidUsers();
         user.setName(userDTO.getName());
         user.setUserName(userDTO.getUserName());
-        user.setPassword(userDTO.getPassword());
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        String encoded = encoder.encode(userDTO.getPassword());
+        System.out.println(encoded);
+        user.setPassword(encoded);
         // check whether it already in db
         ValidUsers checkUserExist = rideSharingRepository.findByUserName(userDTO.getUserName());
         if (checkUserExist == null) {
@@ -188,4 +201,5 @@ public class RideSharingService {
         });
         return userDTO;
     }
+
 }

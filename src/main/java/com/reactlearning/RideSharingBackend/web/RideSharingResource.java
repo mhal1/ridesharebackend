@@ -1,9 +1,6 @@
 package com.reactlearning.RideSharingBackend.web;
 
-import com.reactlearning.RideSharingBackend.dto.BookingDTO;
-import com.reactlearning.RideSharingBackend.dto.RideDTO;
-import com.reactlearning.RideSharingBackend.dto.UserDTO;
-import com.reactlearning.RideSharingBackend.dto.UserResponseDTO;
+import com.reactlearning.RideSharingBackend.dto.*;
 import com.reactlearning.RideSharingBackend.service.RideSharingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/")
 @RequiredArgsConstructor
-@CrossOrigin(value = "*")
+@CrossOrigin(origins = "*")
 public class RideSharingResource {
 
     private final RideSharingService rideSharingService;
@@ -33,14 +30,14 @@ public class RideSharingResource {
     }
 
     @PostMapping("/book_ride")
-    public ResponseEntity<BookingDTO> createBooking(@RequestBody BookingDTO bookingDTO){
-        BookingDTO bookingDTO1 = rideSharingService.createBooking(bookingDTO);
+    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody BookingDTO bookingDTO){
+        BookingResponseDTO bookingDTO1 = rideSharingService.createBooking(bookingDTO);
         return new ResponseEntity<>(bookingDTO1,HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/delete_booking/{id}")
-    public ResponseEntity<String> deleteBooking(@PathVariable Integer id){
-        String deletedBooking = rideSharingService.deleteBooking(id);
+    @DeleteMapping("/delete_booking/{id}/{userName}")
+    public ResponseEntity<DeleteResponseDTO> deleteBooking(@PathVariable Integer id, @PathVariable String userName){
+        DeleteResponseDTO deletedBooking = rideSharingService.deleteBooking(id,userName);
         return new ResponseEntity<>(deletedBooking,HttpStatus.OK);
     }
 
